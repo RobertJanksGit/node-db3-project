@@ -37,12 +37,13 @@ const validateScheme = (req, res, next) => {
   const { scheme_name } = req.body;
   try {
     if (
+      typeof scheme_name !== "string" ||
       !scheme_name ||
-      !scheme_name.tirm() ||
-      typeof scheme_name !== "string"
+      !scheme_name.trim()
     ) {
-      return res.status(400).json({
-        message: "invalid shceme_name",
+      next({
+        status: 400,
+        message: "invalid scheme_name",
       });
     }
     next();
@@ -64,15 +65,16 @@ const validateStep = (req, res, next) => {
   const { instructions, step_number } = req.body;
   try {
     if (
+      typeof instructions !== "string" ||
       !instructions ||
-      !instructions.tirm ||
-      typeof instructions !== "string"
+      !instructions.trim()
     ) {
       return res.status(400).json({ message: "invalid step" });
     }
     if (isNaN(step_number) || step_number < 1) {
       return res.status(400).json({ message: "invalid step" });
     }
+    next();
   } catch (err) {
     next(err);
   }

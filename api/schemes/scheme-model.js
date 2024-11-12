@@ -28,7 +28,31 @@ async function find() {
   */
 }
 
-function findById(scheme_id) {
+async function findById(scheme_id) {
+  const rows = await db("schemes as sc")
+    .leftJoin("steps as st", "sc.scheme_id", "st.scheme_id")
+    .select("sc.scheme_name", "st.*")
+    .where("sc.scheme_id", scheme_id)
+    .orderBy("st.step_number", "asc");
+
+  let result = rows.reduce(
+    (acc, row) => {
+      if (row.step_id) {
+        acc.steps.push({
+          step_id: row.step_id,
+          step_number: row.step_number,
+          instructions: row.instructions,
+        });
+      }
+      return acc;
+    },
+    {
+      scheme_id: rows[0].scheme_id,
+      scheme_name: rows[0].scheme_name,
+      steps: [],
+    }
+  );
+  return result;
   // EXERCISE B
   /*
     1B- Study the SQL query below running it in SQLite Studio against `data/schemes.db3`:
@@ -97,7 +121,14 @@ function findById(scheme_id) {
   */
 }
 
-function findSteps(scheme_id) {
+async function findSteps(scheme_id) {
+  const row = await db("steps")
+    .leftJoin("schemes", "steps.scheme_id", "schemes.scheme_id")
+    .select("step_id", "step_number", "instructions", "scheme_name")
+    .where("steps.scheme_id", scheme_id)
+    .orderBy("step_number", "asc");
+
+  return row;
   // EXERCISE C
   /*
     1C- Build a query in Knex that returns the following data.
@@ -121,14 +152,38 @@ function findSteps(scheme_id) {
   */
 }
 
-function add(scheme) {
+async function add(scheme) {
+  try {
+    const [id] = await db("schemes").insert(scheme);
+    const newScheme = await findById(id);
+    newScheme.scheme_id = id;
+    return newScheme;
+  } catch (err) {
+    console.error("error adding scheme:", err);
+    throw new Error("Could not add scheme");
+  }
   // EXERCISE D
   /*
     1D- This function creates a new scheme and resolves to _the newly created scheme_.
   */
 }
 
-function addStep(scheme_id, step) {
+async function addStep(scheme_id, step) {
+  const { step_number, instructions } = step;
+  try {
+    await db("steps").insert({
+      scheme_id,
+      step_number,
+      instructions,
+    });
+    const row = await db("steps")
+      .where("scheme_id", scheme_id)
+      .orderBy("step_number", "asc");
+    return row;
+  } catch (err) {
+    console.error("error adding step", err);
+    throw new Error("Could not add step");
+  }
   // EXERCISE E
   /*
     1E- This function adds a step to the scheme with the given `scheme_id`
